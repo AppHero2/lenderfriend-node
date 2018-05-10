@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset='utf-8' />
+    <meta name="description" content="Youtube video gallery plugin for jquery >= 1.9" />
+    <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+    <script src="./jquery.youtubevideogallery.js"></script>
+    <script src="./bootstrap/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="./youtube-video-gallery.css" type="text/css"/>
+    <link rel="stylesheet" href="./bootstrap/css/bootstrap.min.css" type="text/css"/>
+    <!--[if lt IE 9]>
+    <link href="../youtube-video-gallery-legacy-ie.css" type="text/css" rel="stylesheet"/>
+    <![endif]-->
+    <title>Tube Dude</title>
+
+    <script src="https://www.gstatic.com/firebasejs/5.0.1/firebase.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/5.0.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/5.0.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/5.0.1/firebase-firestore.js"></script>
+    <script>
+    // Initialize Firebase
+    var config = {
+        apiKey: "AIzaSyC9_eGrZufcFVy0jS9Ytv-7RYvduZur91Q",
+        authDomain: "tube-dude.firebaseapp.com",
+        databaseURL: "https://tube-dude.firebaseio.com",
+        projectId: "tube-dude",
+        storageBucket: "tube-dude.appspot.com",
+        messagingSenderId: "67302929067"
+    };
+    firebase.initializeApp(config);
+
+    function onYouTubeIframeAPIReady() {
+        console.log('onYouTubeIframeAPIReady');
+    }
+            
+    </script>
+
+</head>
+<body>
+<h1>Tube Dude</h1>
+<div id="test">
+    <ul id="wrapper" class="youtube-videogallery">
+    </ul>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h4 class="modal-title" id="exampleModalLabel">Confirm Your Watching</h4>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        </div>
+        <div class="modal-body">
+            <form>
+            <div class="form-group">
+                <label for="recipient-email" class="control-label">YOUR EMAIL:</label>
+                <input type="text" class="form-control" id="recipient-email">
+            </div>
+            <div class="form-group">
+                <label for="unique-code" class="control-label">UNIQUE CODE:</label>
+                <textarea class="form-control" id="unique-code"></textarea>
+            </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary" onclick="onSend()">Send</button>
+        </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    
+    var tag = document.createElement('script');
+		//use https when loading script and youtube iframe src since if user is logging in youtube the youtube src will switch to https.
+		tag.src = "https://www.youtube.com/iframe_api";
+		var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);    
+        
+    var videoList = [];
+    var currentVideo = null;
+    var unique_code = null;
+    var sender_email = null;
+    var isClickedSend = false;
+
+    $(document).ready(function(){
+        
+        const settings = {timestampsInSnapshots: true};
+        var db = firebase.firestore();
+        db.settings(settings);
+        db.collection("VideoList").get().then((querySnapshot) => {
+
+            videoList = [];
+
+            querySnapshot.forEach((doc) => {
+                const video = doc.data();
+                const tube_id = video.tube_id;
+                const title = video.description;
+                const unique_code = video.unique_code;
+                videoList.push(video);
+
+                var galleryView = document.getElementById('wrapper');
+                var newChild = '<li><a href="' + 'http://www.youtube.com/watch?v=' + tube_id + '">' + title + '</a></li>';
+                galleryView.insertAdjacentHTML('beforeend', newChild);
+            });
+
+            $("ul.youtube-videogallery").youtubeVideoGallery( {
+                assetFolder:'./',
+                videoInitializer: initYoutubePlayer
+            });
+            
+        }).catch(err => {
+            console.log('err', err)
+        });
+    });
+
+    function onSend(){
+        isClickedSend = true
+        $('#exampleModal').modal('hide');
+    }
+
+    function initYoutubePlayer(divId, videoId) {
+        currentVideoID = videoId;
+        var player = new YT.Player(divId, {
+            videoId: videoId,
+            playerVars: {
+                color: 'white',
+                playlist: 'taJ60kskkns,FG0fTKAqZ5g'
+            },
+            events: {
+                onStateChange: onPlayerStateChange
+            }
+        });
+
+        function onPlayerStateChange(event) {
+            console.log("onPlayerStateChange----", event);
+
+            for (var i=0; i<videoList.length; i++) {
+                const video = videoList[i];
+                if (video.tube_id == videoId) {
+                    unique_code = video.unique_code;
+                    currentVideo = video;
+                    break;
+                }
+            }
+
+            switch(event.data) {
+                case YT.PlayerState.PLAYING:
+                console.log('Video Played')
+                break;
+                case YT.PlayerState.PAUSED:
+                console.log('Video Paused')
+                break;
+                case YT.PlayerState.ENDED:
+                console.log('Video Finished')
+                player.stopVideo();
+                processVerify();
+                break;
+                default:
+                return;
+            }
+        }
+
+        return player;
+    }
+
+    function processVerify (email, code) {
+        if (unique_code!=null){
+                var modal = $('#exampleModal').on('hidden.bs.modal', function (e) {
+                    
+                    if (isClickedSend) {
+                        isClickedSend = false
+
+                        // send unique code 
+                        const email = $('#recipient-email').val(); console.log('email: ', email);
+                        const code = $('#unique-code').val(); console.log('code: ', code);
+
+                        if (code == unique_code) {
+                            sendNotification('UgaAQAtInAMJLWUfnkwyCApGuod2', 'UNIQUE CODE:');
+                            
+                            var data = {
+                                sender : email || "Anonymous User",
+                                code : code, 
+                                video_id : currentVideo.id,
+                                tube_id : currentVideo.tube_id,
+                                createdAt : Date.now(),
+                                seen: false
+                            }
+                            firebase.database().ref('messages').push(data);
+
+                            currentVideo.playback = currentVideo.playback + 1;
+                            const settings = {timestampsInSnapshots: true};
+                            var db = firebase.firestore();
+                            db.settings(settings);
+                            db.collection("VideoList").doc(currentVideo.id).update(currentVideo);
+                        }
+                    }
+                });
+                
+                const title = 'Please Send Uniqu Code (' + unique_code + ')'
+                $('#exampleModalLabel').html(title);
+                modal.modal('show'); //toggle
+            }
+    }
+
+    function sendNotification(userId, message){
+        console.log('---send notification---------');
+        const endPoint = "https://lenderfriend-node.herokuapp.com/notification/fcm"
+        firebase.database().ref('fcmTokens').child(userId).once('value', (snapshot) => {
+            var token = snapshot.val()
+            console.log('token: ', token);
+            if (token) {
+                var notification = {
+                    title: 'Tube Dude',
+                    body : message,
+                    fcmToken: token,
+                    sound: 'default',
+                    key:  'AAAAD6uRMqs:APA91bEc5IJgEy_U1A0XbQKqgtoqW3Ie5szWvtxXBtsjETY0sYNPb3lnnZVqn96RgVrb51H9YKNq-XgSIDCo903F-8lZ23m0uVVxXb6Tl40maP81m-OdFgHwnZwGTHiTCcza8JjT1F8j'
+                }
+                
+                var body = JSON.stringify(notification);
+                
+                $.ajax({
+                    url: `${endPoint}`,
+                    method: 'POST',
+                    data: {data: body},
+                    success: (Response) => {
+                        console.log(Response)
+                    }
+                });
+            } else {
+                console.log('no token')
+            }
+        })
+    }
+
+</script>
+</body>
+</html>
