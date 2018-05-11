@@ -39,7 +39,9 @@
 </head>
 <body>
 <h1>Tube Dude</h1>
-<div id="tube_frame"></div>
+<div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%;">
+    <div id="tube_frame" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
+</div>
 
 <!-- Modal -->
 <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel">
@@ -116,12 +118,16 @@
         }
 
         videoPlayer = new YT.Player(divId, {
+            width: '100%',
+            height: '100%',
             videoId: videoId,
             playerVars: {
                 color: 'white',
                 autoplay: 0,
                 controls: 0,
-                loop: true
+                showinfo: 0,
+                loop: 0,
+                fs: 1,
             },
             events: {
                 onStateChange: onPlayerStateChange
