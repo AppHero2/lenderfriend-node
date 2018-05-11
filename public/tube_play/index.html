@@ -126,7 +126,8 @@
         var player = new YT.Player(divId, {
             videoId: videoId,
             playerVars: {
-                color: 'white'
+                color: 'white',
+                loop: true
             },
             events: {
                 onStateChange: onPlayerStateChange

@@ -111,6 +111,10 @@
             return;
         }
 
+        if (videoPlayer!=null) {
+            $('#tube_frame').replaceWith('<div id="tube_frame"></div>');
+        }
+
         videoPlayer = new YT.Player(divId, {
             videoId: videoId,
             playerVars: {
