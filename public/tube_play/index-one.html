@@ -31,6 +31,7 @@
 
     function onYouTubeIframeAPIReady() {
         console.log('onYouTubeIframeAPIReady');
+        isReadyYoutube = true;
     }
             
     </script>
@@ -38,10 +39,7 @@
 </head>
 <body>
 <h1>Tube Dude</h1>
-<div id="test">
-    <ul id="wrapper" class="youtube-videogallery">
-    </ul>
-</div>
+<div id="tube_frame"></div>
 
 <!-- Modal -->
 <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel">
@@ -74,12 +72,12 @@
 <script>
     
     var tag = document.createElement('script');
-		//use https when loading script and youtube iframe src since if user is logging in youtube the youtube src will switch to https.
-		tag.src = "https://www.youtube.com/iframe_api";
-		var firstScriptTag = document.getElementsByTagName('script')[0];
-        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);    
-        
-    var videoList = [];
+	tag.src = "https://www.youtube.com/iframe_api";
+    var firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);    
+
+    var isReadyYoutube = false;
+    var videoPlayer = null;   
     var currentVideo = null;
     var unique_code = null;
     var sender_email = null;
@@ -90,30 +88,15 @@
         const settings = {timestampsInSnapshots: true};
         var db = firebase.firestore();
         db.settings(settings);
-        db.collection("VideoList").get().then((querySnapshot) => {
+        db.collection('VideoONE').doc('bF2LwpKJ3qQvflLAWIKU').onSnapshot(function(doc) {
+            var source = doc.metadata.hasPendingWrites ? "Local" : "Server";
+            console.log(source, " data: ", doc.data());
+            currentVideo = doc.data();
 
-            videoList = [];
-
-            querySnapshot.forEach((doc) => {
-                const video = doc.data();
-                const tube_id = video.tube_id;
-                const title = video.description;
-                const unique_code = video.unique_code;
-                videoList.push(video);
-
-                var galleryView = document.getElementById('wrapper');
-                var newChild = '<li><a href="' + 'http://www.youtube.com/watch?v=' + tube_id + '">' + title + '</a></li>';
-                galleryView.insertAdjacentHTML('beforeend', newChild);
-            });
-
-            $("ul.youtube-videogallery").youtubeVideoGallery( {
-                assetFolder:'./',
-                videoInitializer: initYoutubePlayer
-            });
+            initYoutubePlayer('tube_frame', currentVideo.tube_id);
             
-        }).catch(err => {
-            console.log('err', err)
         });
+
     });
 
     function onSend(){
@@ -122,51 +105,46 @@
     }
 
     function initYoutubePlayer(divId, videoId) {
-        currentVideoID = videoId;
-        var player = new YT.Player(divId, {
+
+        if (!isReadyYoutube) {
+            setTimeout(function() { initYoutubePlayer(divId, videoId); }, 1000);
+            return;
+        }
+
+        videoPlayer = new YT.Player(divId, {
             videoId: videoId,
             playerVars: {
-                color: 'white'
+                color: 'white',
+                loop: true
             },
             events: {
                 onStateChange: onPlayerStateChange
             }
         });
-
-        function onPlayerStateChange(event) {
-            console.log("onPlayerStateChange----", event);
-
-            for (var i=0; i<videoList.length; i++) {
-                const video = videoList[i];
-                if (video.tube_id == videoId) {
-                    unique_code = video.unique_code;
-                    currentVideo = video;
-                    break;
-                }
-            }
-
-            switch(event.data) {
-                case YT.PlayerState.PLAYING:
-                console.log('Video Played')
-                break;
-                case YT.PlayerState.PAUSED:
-                console.log('Video Paused')
-                break;
-                case YT.PlayerState.ENDED:
-                console.log('Video Finished')
-                player.stopVideo();
-                processVerify();
-                break;
-                default:
-                return;
-            }
-        }
-
-        return player;
     }
 
-    function processVerify (email, code) {
-        if (unique_code!=null){
+    function onPlayerStateChange(event) {
+        console.log("onPlayerStateChange----", event);
+
+        switch(event.data) {
+            case YT.PlayerState.PLAYING:
+            console.log('Video Played')
+            break;
+            case YT.PlayerState.PAUSED:
+            console.log('Video Paused')
+            break;
+            case YT.PlayerState.ENDED:
+            console.log('Video Finished')
+            videoPlayer.stopVideo();
+            processVerify();
+            break;
+            default:
+            return;
+        }
+    }
+
+    function processVerify () {
+        if (currentVideo.unique_code!=null){
                 var modal = $('#exampleModal').on('hidden.bs.modal', function (e) {
                     
                     if (isClickedSend) {
@@ -176,8 +154,8 @@
                         const email = $('#recipient-email').val(); console.log('email: ', email);
                         const code = $('#unique-code').val(); console.log('code: ', code);
 
-                        if (code == unique_code) {
-                            sendNotification('UgaAQAtInAMJLWUfnkwyCApGuod2', 'UNIQUE CODE:');
+                        if (code == currentVideo.unique_code) {
+                            sendNotification('UgaAQAtInAMJLWUfnkwyCApGuod2', 'UNIQUE CODE:' + code);
                             
                             var data = {
                                 sender : email || "Anonymous User",
@@ -193,12 +171,12 @@
                             const settings = {timestampsInSnapshots: true};
                             var db = firebase.firestore();
                             db.settings(settings);
-                            db.collection("VideoList").doc(currentVideo.id).update(currentVideo);
+                            db.collection("VideoONE").doc(currentVideo.id).update(currentVideo);
                         }
                     }
                 });
                 
-                const title = 'Please Send Uniqu Code (' + unique_code + ')'
+                const title = 'Please Send Uniqu Code (' + currentVideo.unique_code + ')'
                 $('#exampleModalLabel').html(title);
                 modal.modal('show'); //toggle
             }
