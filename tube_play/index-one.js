@@ -1,80 +1,19 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset='utf-8' />
-    <meta name="description" content="Youtube video gallery plugin for jquery >= 1.9" />
-    <script src="./jquery-1.9.1.min.js"></script>
-    <script src="./jquery.youtubevideogallery.js"></script>
-    <script src="./bootstrap/js/bootstrap.min.js"></script>
-    <link rel="stylesheet" href="./youtube-video-gallery.css" type="text/css"/>
-    <link rel="stylesheet" href="./bootstrap/css/bootstrap.min.css" type="text/css"/>
-    <!--[if lt IE 9]>
-    <link href="../youtube-video-gallery-legacy-ie.css" type="text/css" rel="stylesheet"/>
-    <![endif]-->
-    <title>Tube Dude</title>
+var config = {
+    apiKey: "AIzaSyC9_eGrZufcFVy0jS9Ytv-7RYvduZur91Q",
+    authDomain: "tube-dude.firebaseapp.com",
+    databaseURL: "https://tube-dude.firebaseio.com",
+    projectId: "tube-dude",
+    storageBucket: "tube-dude.appspot.com",
+    messagingSenderId: "67302929067"
+};
+firebase.initializeApp(config);
 
-    <script src="./firebase.js"></script>
-    <script src="./firebase-app.js"></script>
-    <script src="./firebase-database.js"></script>
-    <script src="./firebase-firestore.js"></script>
-    <script>
-    // Initialize Firebase
-    var config = {
-        apiKey: "AIzaSyC9_eGrZufcFVy0jS9Ytv-7RYvduZur91Q",
-        authDomain: "tube-dude.firebaseapp.com",
-        databaseURL: "https://tube-dude.firebaseio.com",
-        projectId: "tube-dude",
-        storageBucket: "tube-dude.appspot.com",
-        messagingSenderId: "67302929067"
-    };
-    firebase.initializeApp(config);
+function onYouTubeIframeAPIReady() {
+    console.log('onYouTubeIframeAPIReady');
+    isReadyYoutube = true;
+}
 
-    function onYouTubeIframeAPIReady() {
-        console.log('onYouTubeIframeAPIReady');
-        isReadyYoutube = true;
-    }
-            
-    </script>
-
-</head>
-<body>
-<h1>Tube Dude</h1>
-<div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%;">
-    <div id="tube_frame" style="position: absolute; top: 0; left: 0; width: 100%;
-    height: 100%;"></div>
-</div>
-
-<!-- Modal -->
-<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-        <div class="modal-header">
-            <h4 class="modal-title" id="exampleModalLabel">Confirm Your Watching</h4>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-        </div>
-        <div class="modal-body">
-            <form>
-            <div class="form-group">
-                <label for="recipient-email" class="control-label">YOUR EMAIL:</label>
-                <input type="text" class="form-control" id="recipient-email">
-            </div>
-            <div class="form-group">
-                <label for="unique-code" class="control-label">UNIQUE CODE:</label>
-                <textarea class="form-control" id="unique-code"></textarea>
-            </div>
-            </form>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-            <button type="button" class="btn btn-primary" onclick="onSend()">Send</button>
-        </div>
-        </div>
-    </div>
-</div>
-
-<script>
-    
-    var tag = document.createElement('script');
+var tag = document.createElement('script');
 	tag.src = "https://www.youtube.com/iframe_api";
     var firstScriptTag = document.getElementsByTagName('script')[0];
     firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);    
@@ -225,7 +164,3 @@
             }
         })
     }
-
-</script>
-</body>
-</html>
